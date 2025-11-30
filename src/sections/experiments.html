@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.31">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -78,20 +78,21 @@ div.csl-indent {
 }</style>
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <link href="../../src/sections/graph_model_budgeted.html" rel="prev">
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-dfb324f25d9b1687192fa8be62ac8f9c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-5b4ad623e5705c0698d39aec6f10cf02.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "language": {
     "search-no-results-text": "No results",
@@ -107,7 +108,7 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
@@ -125,7 +126,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -271,7 +272,7 @@ window.Quarto = {
 <div id="imports-and-config" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scikit_posthocs <span class="im">as</span> sp</span>
@@ -298,7 +299,7 @@ window.Quarto = {
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">"legend.fontsize"</span>: <span class="dv">16</span>,</span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">"figure.titlesize"</span>: <span class="dv">36</span>,</span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -308,7 +309,7 @@ window.Quarto = {
 <div id="cell-data-preparation" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>exp <span class="op">=</span> pd.read_csv(<span class="st">"../../data/experiments/graph_model_solver_experiment.csv"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>exp <span class="op">=</span> pd.read_csv(<span class="st">"../../data/experiments/graph_model_solver_experiment.csv"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>exp <span class="op">=</span> exp.rename(</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    columns<span class="op">=</span>{</span>
@@ -331,13 +332,13 @@ window.Quarto = {
 <span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>exp[<span class="st">"total"</span>] <span class="op">=</span> exp[phases].<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>exp[<span class="st">"SOLVER"</span>] <span class="op">=</span> exp[<span class="st">"SOLVER"</span>].<span class="bu">str</span>.upper()</span>
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>exp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>exp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="data-preparation" class="cell-output cell-output-display" data-execution_count="2">
 <div>
 
 
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -351,7 +352,7 @@ window.Quarto = {
 </thead>
 <tbody>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
+<th data-quarto-table-cell-role="th">0</th>
 <td>CBC</td>
 <td>1</td>
 <td>0.037</td>
@@ -360,7 +361,7 @@ window.Quarto = {
 <td>0.067</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
+<th data-quarto-table-cell-role="th">1</th>
 <td>CBC</td>
 <td>2</td>
 <td>0.036</td>
@@ -369,7 +370,7 @@ window.Quarto = {
 <td>0.064</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
+<th data-quarto-table-cell-role="th">2</th>
 <td>CBC</td>
 <td>3</td>
 <td>0.036</td>
@@ -378,7 +379,7 @@ window.Quarto = {
 <td>0.064</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
+<th data-quarto-table-cell-role="th">3</th>
 <td>CBC</td>
 <td>4</td>
 <td>0.036</td>
@@ -387,7 +388,7 @@ window.Quarto = {
 <td>0.064</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
+<th data-quarto-table-cell-role="th">4</th>
 <td>CBC</td>
 <td>5</td>
 <td>0.036</td>
@@ -396,7 +397,7 @@ window.Quarto = {
 <td>0.064</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">...</td>
+<th data-quarto-table-cell-role="th">...</th>
 <td>...</td>
 <td>...</td>
 <td>...</td>
@@ -405,7 +406,7 @@ window.Quarto = {
 <td>...</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">195</td>
+<th data-quarto-table-cell-role="th">195</th>
 <td>SCIP</td>
 <td>46</td>
 <td>0.024</td>
@@ -414,7 +415,7 @@ window.Quarto = {
 <td>0.079</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">196</td>
+<th data-quarto-table-cell-role="th">196</th>
 <td>SCIP</td>
 <td>47</td>
 <td>0.028</td>
@@ -423,7 +424,7 @@ window.Quarto = {
 <td>0.086</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">197</td>
+<th data-quarto-table-cell-role="th">197</th>
 <td>SCIP</td>
 <td>48</td>
 <td>0.025</td>
@@ -432,7 +433,7 @@ window.Quarto = {
 <td>0.082</td>
 </tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">198</td>
+<th data-quarto-table-cell-role="th">198</th>
 <td>SCIP</td>
 <td>49</td>
 <td>0.028</td>
@@ -441,7 +442,7 @@ window.Quarto = {
 <td>0.086</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">199</td>
+<th data-quarto-table-cell-role="th">199</th>
 <td>SCIP</td>
 <td>50</td>
 <td>0.028</td>
@@ -464,7 +465,7 @@ window.Quarto = {
 <div id="visualization" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a color palette</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a color palette</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>palette <span class="op">=</span> [</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"#009d9a"</span>,  <span class="co"># cbc</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"#002d9c"</span>, <span class="co"># gurobi</span></span>
@@ -552,33 +553,33 @@ window.Quarto = {
 <span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Save figures readily for report</span></span>
 <span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a>    filename <span class="op">=</span> <span class="ss">f"../../data/figures/plot_</span><span class="sc">{</span>target<span class="sc">}</span><span class="ss">.pdf"</span></span>
-<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a>    plt.savefig(filename, <span class="bu">format</span><span class="op">=</span><span class="st">'pdf'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a>    plt.savefig(filename, <span class="bu">format</span><span class="op">=</span><span class="st">'pdf'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="experiments_files/figure-html/visualization-output-1.png" id="visualization-1" class="img-fluid figure-img"></p>
+<p><img src="experiments_files/figure-html/visualization-output-1.png" id="visualization-1" width="541" height="542" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="experiments_files/figure-html/visualization-output-2.png" id="visualization-2" class="img-fluid figure-img"></p>
+<p><img src="experiments_files/figure-html/visualization-output-2.png" id="visualization-2" width="541" height="542" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="experiments_files/figure-html/visualization-output-3.png" id="visualization-3" class="img-fluid figure-img"></p>
+<p><img src="experiments_files/figure-html/visualization-output-3.png" id="visualization-3" width="541" height="542" class="figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="experiments_files/figure-html/visualization-output-4.png" id="visualization-4" class="img-fluid figure-img"></p>
+<p><img src="experiments_files/figure-html/visualization-output-4.png" id="visualization-4" width="541" height="521" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -616,7 +617,7 @@ W = \frac{(N-k)}{(k-1)} \frac{\sum_{i=1}^{k} N_i (Z_{i\cdot} - Z_{\cdot\cdot})^2
 <p>We reject <span class="math inline">\(H_0\)</span> if <span class="math inline">\(p &lt; 0.05\)</span></p>
 <p>We checked if the variances were equal across groups. With the exception of Phase 3, the p-values were below 0.05, indicating heteroscedasticity (unequal variances).</p>
 <div id="assumptions" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> target <span class="kw">in</span> targets:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> target <span class="kw">in</span> targets:</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"--- Assumptions for </span><span class="sc">{</span>target<span class="sc">}</span><span class="ss"> ---"</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># check normality (Shapiro-Wilk)</span></span>
@@ -629,7 +630,7 @@ W = \frac{(N-k)}{(k-1)} \frac{\sum_{i=1}^{k} N_i (Z_{i\cdot} - Z_{\cdot\cdot})^2
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># If p &lt; 0.05, variances are different.</span></span>
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    solvers_data <span class="op">=</span> [group[target].values <span class="cf">for</span> name, group <span class="kw">in</span> exp.groupby(<span class="st">"SOLVER"</span>)]</span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    stat, p_levene <span class="op">=</span> stats.levene(<span class="op">*</span>solvers_data)</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Levene Test: p=</span><span class="sc">{</span>p_levene<span class="sc">:.6f}</span><span class="ch">\n</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Levene Test: p=</span><span class="sc">{</span>p_levene<span class="sc">:.6f}</span><span class="ch">\n</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>--- Assumptions for phase1 ---
 Shapiro (CBC): p=0.000000
@@ -676,7 +677,7 @@ H = \frac{12}{N(N+1)} \sum_{i=1}^{k} \frac{R_i^2}{n_i} - 3(N+1)
 <p>We reject <span class="math inline">\(H_0\)</span> if <span class="math inline">\(p &lt; 0.05\)</span></p>
 <p>The results yielded extremely low p-values (<span class="math inline">\(p &lt; 10^{-37}\)</span>) for all phases and the total time. This allows us to reject the null hypothesis and confirm that there are significant statistical differences in performance between the solvers in every phase of the experiment.</p>
 <div id="kruskal-wallis" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"### Kruskal-Wallis H-Test Results ###"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"### Kruskal-Wallis H-Test Results ###"</span>)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>significant_targets <span class="op">=</span> []</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -694,7 +695,7 @@ H = \frac{12}{N(N+1)} \sum_{i=1}^{k} \frac{R_i^2}{n_i} - 3(N+1)
 <span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        significant_targets.append(target)</span>
 <span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"No significant differences in </span><span class="sc">{</span>target<span class="sc">}</span><span class="ss">."</span>)</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">30</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>### Kruskal-Wallis H-Test Results ###
 PHASE1 | Statistic: 162.31, p-value: 5.82e-35
@@ -735,7 +736,7 @@ z_{ij} = \frac{\bar{R}_i - \bar{R}_j}{\sqrt{\frac{N(N+1)}{12} \left( \frac{1}{n_
 <li><p><strong>Total</strong>: The aggregated view confirms that globally, the solvers have significantly different performance characteristics, with the lowest p-values found when comparing GUROBI and SCIP against the others.</p></li>
 </ul>
 <div id="post-hoc" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> significant_targets:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> significant_targets:</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"### Post-hoc Analysis (Dunn's Test) ###"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> target <span class="kw">in</span> significant_targets:</span>
@@ -745,7 +746,7 @@ z_{ij} = \frac{\bar{R}_i - \bar{R}_j}{\sqrt{\frac{N(N+1)}{12} \left( \frac{1}{n_
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># p_adjust='bonferroni' corrects for doing multiple tests to avoid False Positives</span></span>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        dunn_results <span class="op">=</span> sp.posthoc_dunn(exp, val_col<span class="op">=</span>target, group_col<span class="op">=</span><span class="st">'SOLVER'</span>, p_adjust<span class="op">=</span><span class="st">'bonferroni'</span>)</span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(dunn_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(dunn_results)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>### Post-hoc Analysis (Dunn's Test) ###
 
@@ -782,7 +783,7 @@ SCIP    1.869560e-04  7.430566e-37  5.083186e-16  1.000000e+00</code></pre>
 <div id="cell-generate-solution-map" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> geopandas <span class="im">as</span> gpd</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> folium.plugins <span class="im">import</span> Fullscreen</span>
@@ -812,12 +813,12 @@ SCIP    1.869560e-04  7.430566e-37  5.083186e-16  1.000000e+00</code></pre>
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    summary,</span>
 <span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    output_path<span class="op">=</span><span class="st">"../../data/figures/solution_map_gurobi_alpha_0.5.pdf"</span>,</span>
 <span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    save<span class="op">=</span><span class="va">False</span></span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="experiments_files/figure-html/generate-solution-map-output-1.png" id="generate-solution-map" class="img-fluid figure-img"></p>
+<p><img src="experiments_files/figure-html/generate-solution-map-output-1.png" id="generate-solution-map" width="1334" height="1194" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -911,13 +912,14 @@ SCIP    1.869560e-04  7.430566e-37  5.083186e-16  1.000000e+00</code></pre>
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
