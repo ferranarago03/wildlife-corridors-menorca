@@ -48,9 +48,9 @@ This model aims to design wildlife corridors and habitat adaptations for multipl
 
     \item[$p$] penalty associated to non-connected origins;
 
-    \item[$B_s^c$] total budget to build corridors for each specie.
-
-    \item[$B_s^a$] total budget to adapt parcels for each specie.
+    \item[$B_s^c$] total budget to build corridors for each species.
+    
+    \item[$B_s^a$] total budget to adapt parcels for each species.
 
     \item[$cover$] the minimum percentage of origins that must be connected.
 
