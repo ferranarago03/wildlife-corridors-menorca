@@ -41,16 +41,22 @@ The graph-based models in `graph_core.py`, `graph_model_gurobi_budgeted.py`, and
 **Input**: Full landscape graph $G$, species set $S_{prey} = S \setminus \{\text{Martes}\}$.
 
 **Process**:
+
 1. Generate origin pairs $(r_i, r_j)$ for each prey species where $\text{manhattan}(r_i, r_j) \leq D_{max}$.
+   
 2. Compute shortest path for each pair using Dijkstra's algorithm.
+   
 3. Create `PathCandidate` objects with path cells and costs.
+   
 4. Solve path selection ILP:
 
 $\min \sum_{p \in P} \text{cost}_p \cdot z_p$
 
-Subject to:
-- Each origin participates in at least one selected path.
-- Per-species budget constraints.
+  Subject to:
+
+  - Each origin participates in at least one selected path.
+    
+  - Per-species budget constraints.
 
 **Output**: Selected paths for prey species, cells used.
 
@@ -59,7 +65,9 @@ Subject to:
 **Input**: Graph $G'$ with incompatible cells removed.
 
 **Incompatible cells** (removed from $G'$):
+
 - Origin cells of Oryctolagus and Eliomys unless origins.
+  
 - Interior cells of paths selected in Phase 1 for Oryctolagus and Eliomys.
 
 **Process**: Same as Phase 1, but only for Martes martes.
@@ -76,12 +84,15 @@ Subject to:
 $\min \alpha \sum_{s,j} a_{sj} R_{sj} - (1-\alpha) \sum_{s,j} b_{sj} R_{sj}$.
 
 **Constraints**:
+
 - Compatibility: $2R_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \leq 2$.
+  
 - Per-species adaptation budgets.
 
 ### Phase 4 — Summary and maps
 
 - `build_summary_from_paths` consolidates corridors, rehabilitated cells, origin sets, and colors into a `SolutionSummary`.
+  
 - Maps and JSON summaries are exported: `maps/graph_model_*_budgeted_map_*.html` and `data/experiments/summaries/graph_model_*_budgeted_summary.json`.
 
 ## Data and parameters

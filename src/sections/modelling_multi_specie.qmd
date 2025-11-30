@@ -243,41 +243,17 @@ for species in SPECIES:
 
 all_cells = df["grid_id"].tolist()
 
-print(f"\nTotal cells in the grid: {len(all_cells)}")
-print("\nOrigin cells by species:")
-for species in SPECIES:
-    print(f"  {species}:")
-    print(f"    - Origins: {len(origin_cells_by_species[species])}")
-    if len(origin_cells_by_species[species]) > 0:
-        print(f"    - First 5 cells: {origin_cells_by_species[species][:5]}")
-
 all_cells_set = set(all_cells)
 adjacency = {}
 
 for cell in all_cells:
     adjacency[cell] = get_adjacent_cells(cell, all_cells_set, df)
 
-print("\nExample adjacencies:")
-for i, cell in enumerate(all_cells[:3]):
-    print(f"{cell}: {adjacency[cell]}")
-    geom_cell = df[df["grid_id"] == cell]["geometry"].values[0]
-    for j, neighbor in enumerate(adjacency[cell]):
-        geom_neighbor = df[df["grid_id"] == neighbor]["geometry"].values[0]
-        print(
-            "Touches:",
-            neighbor,
-            geom_cell.touches(geom_neighbor),
-        )
-
 # ============================================================================
 # PARAMETERS DICTIONARIES
 # ============================================================================
 
 cost_corridor_dict = dict(zip(df["grid_id"], df["cost_corridor"]))
-
-print("\nExample corridor costs:")
-for cell in all_cells[:5]:
-    print(f"{cell}: {cost_corridor_dict[cell]:.2f}")
 
 cost_adaptation_dict = {}
 for j in all_cells:
@@ -286,23 +262,12 @@ for j in all_cells:
             f"cost_adaptation_{species.split('_')[0]}"
         ].values[0]
 
-print("\nExample adaptation costs:")
-for species in SPECIES:
-    for cell in all_cells[:5]:
-        print(f"{species}, {cell}: {cost_adaptation_dict[(species, cell)]:.2f}")
-
 benefit_adaptation_dict = {}
 for j in all_cells:
     for species in SPECIES:
         benefit_adaptation_dict[(species, j)] = df[df["grid_id"] == j][
             f"{species.split('_')[1]}_benefit"
         ].values[0]
-
-print("\nExample adaptation benefits:")
-for species in SPECIES:
-    for cell in all_cells[:5]:
-        print(f"{species}, {cell}: {benefit_adaptation_dict[(species, cell)]:.2f}")
-
 ```
 
 ### Budget Preparation
@@ -353,19 +318,6 @@ def _prepare_budget_shares(
 ) = _prepare_budget_shares(
     SPECIES, BUDGET, CORRIDOR_SHARE_BY_SPECIES, ADAPTATION_SHARE_BY_SPECIES
 )
-
-print("=" * 60)
-print(
-    "\nBudgets configured:"
-    f"\n  Total: {BUDGET:.2f}"
-    f"\n  Corridors (sum shares): {corridor_share_total:.2f}"
-    f"\n  Adaptation (sum shares): {adaptation_share_total:.2f}"
-)
-for sp in SPECIES:
-    print(
-        f"    {sp}: corridors {corridor_budget_by_species.get(sp, 0.0):.2f} | "
-        f"adaptation {adaptation_budget_by_species.get(sp, 0.0):.2f}"
-    )
 ```
 
 ### Model Creation
@@ -375,9 +327,6 @@ The Gurobi model object is instantiated here. This model will hold all decision 
 ```{python}
 #| eval: false
 model = gp.Model("WildlifeCorridors")
-
-print(f"\n   Gurobi version: {gp.gurobi.version()}")
-
 ```
 
 ### Decision Variables
@@ -402,10 +351,6 @@ for species in SPECIES:
                 y[(species, r, j, k)] = model.addVar(
                     vtype=GRB.BINARY, name=f"y_{species}_{r}_{j}_{k}"
                 )
-
-for species in SPECIES:
-    species_vars = sum(1 for key in y.keys() if key[0] == species)
-    print(f"    {species}: {species_vars}")
 
 
 covered = {}
@@ -458,8 +403,6 @@ if PENALTY_UNCOVERED_ORIGIN is not None:
         cost += PENALTY_UNCOVERED_ORIGIN * (1 - var)
 
 model.setObjective((ALPHA * cost) - ((1 - ALPHA) * benefit), GRB.MINIMIZE)
-
-print("Objective function set: Minimize total corridor construction cost")
 
 ```
 
@@ -770,7 +713,7 @@ if MIN_COVERAGE_FRACTION is not None and covered:
 The model is configured with performance parameters before solving: a time limit prevents excessive computation, MIPGap controls the acceptable optimality gap, MIPFocus directs the solver's strategy, and Heuristics controls the effort spent on finding feasible solutions quickly. After optimization, the solution status is checked and key metrics (objective value, total cost, runtime) are reported.
 
 ```{python}
-#| eval: false
+# | eval: false
 # --- PERFORMANCE CONFIGURATION ---
 
 model.setParam("TimeLimit", TIME_LIMIT_SECONDS)
