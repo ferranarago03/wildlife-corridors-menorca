@@ -1,0 +1,899 @@
+---
+title: "Integer Linear Programming Model"
+bibliography: references.bib
+csl: ieee.csl
+---
+
+```{=html}
+<style>
+.left-align-math .MathJax {
+  text-align: left !important;
+}
+</style>
+```
+
+## Model Overview
+
+This model aims to design wildlife corridors and habitat adaptations for multiple species while minimizing costs and ensuring connectivity among origin cells. The model uses a multi-commodity network flow approach with spanning tree constraints for each species, allowing corridors to be shared across species.
+
+### Species Considered
+
+- Oryctolagus cuniculus
+- Atelerix algirus
+- Eliomys quercinus
+- Martes martes
+
+### Problem Formulation
+
+- **Objective**: Minimize total cost of corridor construction and habitat adaptation minus benefits from adaptations.
+- **Goal**: Ensure connectivity among origin cells for each species using shared corridors.
+- **Approach**: Multi-commodity network flow with spanning tree constraints.
+
+### Parameters
+
+\begin{itemize}
+    \item[$i,j,k$] the indices of cells eligible to be selected for the corridor system;
+
+    \item[$s$] species $\in$ \{atelerix algirus, martes martes, elyomis quercinus, oryctolagus cuniculus\}
+
+    \item[$c_j$] the cost of building a corridor in cell $j$;
+
+    \item[$a_{sj}$] the cost of adapting cell $j$ for species $e$;
+
+    \item[$b_{sj}$] the benefit of adapting cell $j$ for species $e$;
+
+    \item[$A_j$] set of cells $k$ that are adjacent to parcel $j$;
+
+    \item[$r_s$] origin cell of species $s$;
+
+    \item[$p$] penalty associated to non-connected origins;
+
+    \item[$B_s^c$] total budget to build corridors for each specie.
+
+    \item[$B_s^a$] total budget to adapt parcels for each specie.
+
+    \item[$cover$] the minimum percentage of origins that must be connected.
+
+\end{itemize}
+
+### Decision Variables
+
+\begin{align*}
+X_j &=
+\begin{cases}
+1, & \text{if there is a corridor in cell $j$, and} \\
+0, & \text{otherwise;}
+\end{cases} \\
+%
+Y_{rsjk} &=
+\begin{cases}
+1, & \text{if a corridor is built that comes from origin} \\
+   & \text{$r_s$ into cell $j$ with direction toward the} \\
+   & \text{adjacent cell $k$, and} \\
+0, & \text{otherwise;}
+\end{cases} \\
+\end{align*}
+\begin{align*}
+%
+U_{sj} &= \begin{cases}
+1, & \text{if species $s$ uses cell $j$ as a corridor, and} \\
+0, & \text{otherwise;}
+\end{cases}\\
+%
+R_{sj} &= \begin{cases}
+1, & \text{if cell $j$ is rehabilitated for species $s$, and} \\
+0, & \text{otherwise;}
+\end{cases} \\
+%
+C_{rs} &= \begin{cases}
+1, & \text{if origin $r_s$ has a corridor connected} \\
+0, & \text{otherwise}
+\end{cases}
+\end{align*}
+
+### Objective Function
+
+\begin{equation}
+\begin{aligned}
+\min z =\;&
+\alpha \left(
+    \sum_j \left( c_j X_j + \sum_{s} a_{sj} R_{sj} \right)
+    + \textit{p}\,(1 - C_{sr})
+\right) -
+\\[3pt]
+&-
+(1-\alpha)\left(
+    \sum_{j=1}^{J} \sum_{s} b_{sj} R_{sj}
+\right)
+\end{aligned}
+\end{equation}
+
+### Constraints
+
+::: {.left-align-math}
+
+$$C_{rs} \le \sum_{k \in A_r} Y_{rs r k} \le |A_r|\, C_{rs} \quad \forall r, s$$
+
+$$Y_{rs j k} \le C_{rs} \quad \forall r, s, j, k \in A_j$$
+
+$$\sum_{i \in A_j} Y_{rsij} - \sum_{k \in A_j} Y_{rsjk} = 0 \quad \forall s, r, k \neq r, j \notin r_s$$
+
+$$Y_{rs j k} + Y_{rs k j} \le 1 \quad \forall r_s, j \text{ and } k \in A_j \text{ with } j < k$$
+
+$$U_{sj} \le \sum_{r} \sum_{k \in A_j} Y_{rsjk} + Y_{rskj} \le \lambda U_{sj} \quad \forall s, j$$
+
+$$\sum_s U_{sj} \le \lambda X_j \quad \forall j$$
+
+$$2 U_{\text{martes},j} + U_{\text{oryctolagus},j} + U_{\text{eliomys},j} \le 2 \quad \forall j \notin r_s$$
+
+$$R_{sj} \le \sum_{k \in A_j} U_{sk} + m \quad \forall s, j \text{ where } m = \begin{cases} 1 & \text{if } \exists k \in A_j \mid k \in r_s \\ 0 & \text{otherwise} \end{cases}$$
+
+$$2 R_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \le 2 \quad \forall j$$
+
+$$2 U_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \le 2 \quad \forall j$$
+
+$$2 R_{\text{martes},j} + U_{\text{oryctolagus},j} + U_{\text{eliomys},j} \le 2 \quad \forall j$$
+
+$$\sum_j c_j U_{sj} \le B_s^c \quad \forall s$$
+
+$$\sum_j a_{sj} R_{sj} \le B_s^a \quad \forall s$$
+
+$$\sum_{r,s} C_{rs} \ge cover \sum_{s} |r_s|$$
+
+:::
+
+The following code block imports the necessary libraries and modules for the model implementation. It includes standard Python libraries (`pathlib`, `sys`, `time`), geospatial data handling (`geopandas`), and the Gurobi optimization library (`gurobipy`). Additionally, it imports custom constants and utility functions from the project's modules to configure the model parameters and visualization tools.
+
+```{python}
+#| eval: false
+#| code-fold: true
+
+import pathlib
+import sys
+import time
+
+import geopandas as gpd
+import gurobipy as gp
+from gurobipy import GRB
+
+# Add src to path to enable imports when running as script or importing
+src_path = pathlib.Path(__file__).parent.parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+from models.gurobi.constants import (
+    ALPHA,
+    BUDGET,
+    FOCUS,
+    GAP,
+    HEURISTICS,
+    MIN_COVERAGE_FRACTION,
+    PENALTY_UNCOVERED_ORIGIN,
+    SPECIES,
+)
+from models.utils import get_adjacent_cells
+from models.visualization import (
+    build_solution_summary,
+    create_solution_map,
+    save_solution_summary,
+)
+
+TIME_LIMIT_SECONDS = 60 * 5
+```
+
+## Model Implementation
+
+The process of implementing the code in Python now continues. In this case, it was done using the Gurobi API, as it was the only model capable of achieving results in a relatively reasonable time.
+
+### Data Loading
+
+The processed dataset containing all cell information is loaded as a GeoDataFrame from a Parquet file. This dataset includes grid cell identifiers, geometric boundaries, species presence indicators, corridor costs, adaptation costs, and adaptation benefits for each cell.
+
+```{python}
+#| eval: false
+
+root_path = pathlib.Path(__file__).parent.parent.parent
+data_path = root_path / "data" / "processed_dataset.parquet"
+df = gpd.read_parquet(data_path)
+```
+
+### Constants and Parameters
+
+
+A series of constants are defined that the user must enter when running the model:
+
+- `BUDGET`: Maximum total capital to be invested.
+
+- `CORRIDOR_SHARE_BY_SPECIES`: Percentage of the total allocated to each species for creating corridors.
+
+- `ADAPTATION_SHARE_BY_SPECIES`: Percentage allocated for adapting cells for each species.
+
+In this case, the allocation has been made taking into account the extinction risk level of each species as defined in the problem statement. Therefore, those species with the largest allocated budget will benefit from the model.
+
+Here, too, all the dictionaries that will collect each of the parameters established above are established.
+
+```{python}
+#| eval: false
+BUDGET: float = 500.0
+
+CORRIDOR_SHARE_BY_SPECIES: dict[str, float] = {
+    "oryctolagus_cuniculus": 0.30,
+    "eliomys_quercinus": 0.24,
+    "atelerix_algirus": 0.14,
+    "martes_martes": 0.12,
+}
+ADAPTATION_SHARE_BY_SPECIES: dict[str, float] | None = {
+    "oryctolagus_cuniculus": 0.07,
+    "eliomys_quercinus": 0.06,
+    "atelerix_algirus": 0.04,
+    "martes_martes": 0.03,
+}
+
+origin_cells_by_species = {}
+
+for species in SPECIES:
+    column_name = f"has_{species}"
+    species_cells = df[df[column_name]]["grid_id"].tolist()
+
+    if len(species_cells) > 0:
+        origin_cells_by_species[species] = species_cells
+    else:
+        print(f"Warning: No cells found for species {species}")
+        origin_cells_by_species[species] = []
+
+all_cells = df["grid_id"].tolist()
+
+print(f"\nTotal cells in the grid: {len(all_cells)}")
+print("\nOrigin cells by species:")
+for species in SPECIES:
+    print(f"  {species}:")
+    print(f"    - Origins: {len(origin_cells_by_species[species])}")
+    if len(origin_cells_by_species[species]) > 0:
+        print(f"    - First 5 cells: {origin_cells_by_species[species][:5]}")
+
+all_cells_set = set(all_cells)
+adjacency = {}
+
+for cell in all_cells:
+    adjacency[cell] = get_adjacent_cells(cell, all_cells_set, df)
+
+print("\nExample adjacencies:")
+for i, cell in enumerate(all_cells[:3]):
+    print(f"{cell}: {adjacency[cell]}")
+    geom_cell = df[df["grid_id"] == cell]["geometry"].values[0]
+    for j, neighbor in enumerate(adjacency[cell]):
+        geom_neighbor = df[df["grid_id"] == neighbor]["geometry"].values[0]
+        print(
+            "Touches:",
+            neighbor,
+            geom_cell.touches(geom_neighbor),
+        )
+
+# ============================================================================
+# PARAMETERS DICTIONARIES
+# ============================================================================
+
+cost_corridor_dict = dict(zip(df["grid_id"], df["cost_corridor"]))
+
+print("\nExample corridor costs:")
+for cell in all_cells[:5]:
+    print(f"{cell}: {cost_corridor_dict[cell]:.2f}")
+
+cost_adaptation_dict = {}
+for j in all_cells:
+    for species in SPECIES:
+        cost_adaptation_dict[(species, j)] = df[df["grid_id"] == j][
+            f"cost_adaptation_{species.split('_')[0]}"
+        ].values[0]
+
+print("\nExample adaptation costs:")
+for species in SPECIES:
+    for cell in all_cells[:5]:
+        print(f"{species}, {cell}: {cost_adaptation_dict[(species, cell)]:.2f}")
+
+benefit_adaptation_dict = {}
+for j in all_cells:
+    for species in SPECIES:
+        benefit_adaptation_dict[(species, j)] = df[df["grid_id"] == j][
+            f"{species.split('_')[1]}_benefit"
+        ].values[0]
+
+print("\nExample adaptation benefits:")
+for species in SPECIES:
+    for cell in all_cells[:5]:
+        print(f"{species}, {cell}: {benefit_adaptation_dict[(species, cell)]:.2f}")
+
+```
+
+### Budget Preparation
+
+This function validates and computes the budget allocation for corridors and adaptations per species. It ensures that the sum of corridor and adaptation shares does not exceed 100% of the total budget, and returns the calculated budget amounts for each species.
+
+```{python}
+#| eval: false
+
+def _prepare_budget_shares(
+    species_list, total_budget, corridor_shares, adaptation_shares
+):
+    corridor_share_total = sum(corridor_shares.get(sp, 0.0) for sp in species_list)
+    if corridor_share_total > 1.0 + 1e-9:
+        raise ValueError(
+            f"Corridor shares sum to {corridor_share_total:.3f} > 1.0; reduce CORRIDOR_SHARE_BY_SPECIES."
+        )
+
+    if adaptation_shares is None:
+        remaining = max(0.0, 1.0 - corridor_share_total)
+        adaptation_shares = {sp: remaining / len(species_list) for sp in species_list}
+    adaptation_share_total = sum(adaptation_shares.get(sp, 0.0) for sp in species_list)
+
+    if corridor_share_total + adaptation_share_total > 1.0 + 1e-9:
+        raise ValueError(
+            f"Corridor+adaptation shares sum to {corridor_share_total + adaptation_share_total:.3f} > 1.0; reduce percentages."
+        )
+
+    corridor_budget_by_species = {
+        sp: total_budget * corridor_shares.get(sp, 0.0) for sp in species_list
+    }
+    adaptation_budget_by_species = {
+        sp: total_budget * adaptation_shares.get(sp, 0.0) for sp in species_list
+    }
+    return (
+        corridor_budget_by_species,
+        adaptation_budget_by_species,
+        corridor_share_total,
+        adaptation_share_total,
+    )
+
+
+(
+    corridor_budget_by_species,
+    adaptation_budget_by_species,
+    corridor_share_total,
+    adaptation_share_total,
+) = _prepare_budget_shares(
+    SPECIES, BUDGET, CORRIDOR_SHARE_BY_SPECIES, ADAPTATION_SHARE_BY_SPECIES
+)
+
+print("=" * 60)
+print(
+    "\nBudgets configured:"
+    f"\n  Total: {BUDGET:.2f}"
+    f"\n  Corridors (sum shares): {corridor_share_total:.2f}"
+    f"\n  Adaptation (sum shares): {adaptation_share_total:.2f}"
+)
+for sp in SPECIES:
+    print(
+        f"    {sp}: corridors {corridor_budget_by_species.get(sp, 0.0):.2f} | "
+        f"adaptation {adaptation_budget_by_species.get(sp, 0.0):.2f}"
+    )
+```
+
+### Model Creation
+
+The Gurobi model object is instantiated here. This model will hold all decision variables, constraints, and the objective function for the wildlife corridor optimization problem.
+
+```{python}
+#| eval: false
+model = gp.Model("WildlifeCorridors")
+
+print(f"\n   Gurobi version: {gp.gurobi.version()}")
+
+```
+
+### Decision Variables
+
+The decision variables are created as binary variables in the Gurobi model. Variable $X_j$ indicates whether a corridor is built in cell $j$. Variable $Y_{rsjk}$ represents the flow direction from origin $r$ of species $s$ through cell $j$ toward adjacent cell $k$. The `covered` variable tracks whether each origin cell is connected to the corridor network. Variables $U_{sj}$ and `rehab` (for $R_{sj}$) indicate species corridor usage and habitat rehabilitation respectively.
+
+```{python}
+#| eval: false
+
+x = {}
+for j in all_cells:
+    x[j] = model.addVar(vtype=GRB.BINARY, name=f"x_{j}")
+
+
+
+y = {}
+for species in SPECIES:
+    origin_cells = origin_cells_by_species[species]
+    for r in origin_cells:
+        for j in all_cells:
+            for k in adjacency[j]:
+                y[(species, r, j, k)] = model.addVar(
+                    vtype=GRB.BINARY, name=f"y_{species}_{r}_{j}_{k}"
+                )
+
+for species in SPECIES:
+    species_vars = sum(1 for key in y.keys() if key[0] == species)
+    print(f"    {species}: {species_vars}")
+
+
+covered = {}
+for species in SPECIES:
+    for origin in origin_cells_by_species[species]:
+        covered[(species, origin)] = model.addVar(
+            vtype=GRB.BINARY, name=f"covered_{species}_{origin}"
+        )
+
+u = {}
+rehab = {}
+for species in SPECIES:
+    origin_cells = origin_cells_by_species[species]
+    for j in all_cells:
+        u[(species, j)] = model.addVar(vtype=GRB.BINARY, name=f"u_{species}_{j}")
+
+        if j not in origin_cells:
+            rehab[(species, j)] = model.addVar(
+                vtype=GRB.BINARY, name=f"rehab_{species}_{j}"
+            )
+
+
+model.update()
+
+```
+
+### Objective Function
+
+The objective function is implemented by combining construction costs, adaptation costs, and adaptation benefits. The parameter $\alpha$ controls the trade-off between minimizing costs and maximizing benefits. A penalty term is added for each uncovered origin cell to encourage full connectivity.
+
+```{python}
+#| eval: false
+
+cost = gp.LinExpr()
+benefit = gp.LinExpr()
+
+for j in x.keys():
+    cost += cost_corridor_dict[j] * x[j]
+    for species in SPECIES:
+        if (species, j) in rehab:
+            cost += cost_adaptation_dict[(species, j)] * rehab[(species, j)]
+
+for j in x.keys():
+    for species in SPECIES:
+        if (species, j) in rehab:
+            benefit += benefit_adaptation_dict[(species, j)] * rehab[(species, j)]
+
+if PENALTY_UNCOVERED_ORIGIN is not None:
+    for var in covered.values():
+        cost += PENALTY_UNCOVERED_ORIGIN * (1 - var)
+
+model.setObjective((ALPHA * cost) - ((1 - ALPHA) * benefit), GRB.MINIMIZE)
+
+print("Objective function set: Minimize total corridor construction cost")
+
+```
+
+### Constraints
+
+#### Optional outgoing corridor per origin
+
+$$C_{rs} \le \sum_{k \in A_r} Y_{rs r k} \le |A_r|\, C_{rs} \quad \forall r, s$$
+
+This constraint ensures that if an origin cell $r$ of species $s$ is marked as covered ($C_{rs} = 1$), then at least one outgoing flow arc must exist from that origin to an adjacent cell. The upper bound limits the outflow to at most the number of adjacent cells when covered.
+
+```{python}
+#| eval: false
+
+for species in SPECIES:
+    origin_cells = origin_cells_by_species[species]
+    for r in origin_cells:
+        outflow = gp.LinExpr()
+        deg_r = max(1, len(adjacency[r]))
+
+        for j in adjacency[r]:
+            outflow += y[(species, r, r, j)]
+
+        model.addConstr(
+            outflow >= covered[(species, r)],
+            name=f"origin_outflow_min_{species}_{r}",
+        )
+        model.addConstr(
+            outflow <= deg_r * covered[(species, r)],
+            name=f"origin_outflow_max_{species}_{r}",
+        )
+```
+
+#### Flow variables bounded by origin coverage
+
+$$Y_{rs j k} \le C_{rs} \quad \forall r, s, j, k \in A_j$$
+
+This constraint ensures that flow variables $Y_{rsjk}$ can only be active if the corresponding origin $r$ for species $s$ is covered. If an origin is not connected to the corridor network ($C_{rs} = 0$), no flow can emanate from it through any cell.
+
+```{python}
+#| eval: false
+
+for species in SPECIES:
+    origin_cells = origin_cells_by_species[species]
+    for r in origin_cells:
+        for j in all_cells:
+            for k in adjacency[j]:
+                if (species, r, j, k) in y:
+                    model.addConstr(
+                        y[(species, r, j, k)] <= covered[(species, r)],
+                        name=f"origin_flow_bound_{species}_{r}_{j}_{k}",
+                    )
+```
+
+
+#### Flow conservation at intermediate nodes
+
+$$\sum_{i \in A_j} Y_{rsij} - \sum_{k \in A_j} Y_{rsjk} = 0 \quad \forall s, r, k \neq r, j \notin r_s$$
+
+This constraint enforces flow conservation at all intermediate cells (non-origin cells). For each cell $j$ that is not an origin, the total incoming flow from adjacent cells must equal the total outgoing flow, ensuring that corridors form continuous paths without flow accumulation at intermediate nodes.
+
+```{python}
+#| eval: false
+for species in SPECIES:
+    origin_cells = origin_cells_by_species[species]
+
+    for r in origin_cells:
+        for j in all_cells:
+            if j in origin_cells:
+                continue
+
+            flow_balance = gp.LinExpr()
+
+            for i in adjacency[j]:
+                flow_balance += y[(species, r, i, j)]
+
+            for k in adjacency[j]:
+                if k != r:
+                    flow_balance -= y[(species, r, j, k)]
+
+            model.addConstr(
+                flow_balance == 0, name=f"flow_conservation_{species}_{r}_{j}"
+            )
+```
+
+#### No reverse flow on edges
+
+$$Y_{rs j k} + Y_{rs k j} \le 1 \quad \forall r_s, j \text{ and } k \in A_j \text{ with } j < k$$
+
+This constraint prevents bidirectional flow on the same edge between two adjacent cells. For any pair of cells $j$ and $k$, at most one direction of flow is allowed ($Y_{rsjk} + Y_{rskj} \le 1$), which helps maintain a tree structure in the corridor network.
+
+```{python}
+#| eval: false
+for species in SPECIES:
+    origin_cells = origin_cells_by_species[species]
+
+    for r in origin_cells:
+        for j in all_cells:
+            for k in adjacency[j]:
+                if j < k:
+                    if (species, r, j, k) in y and (species, r, k, j) in y:
+                        model.addConstr(
+                            y[(species, r, j, k)] + y[(species, r, k, j)] <= 1,
+                            name=f"no_reverse_flow_{species}_{r}_{j}_{k}",
+                        )
+```
+
+#### Flow only on built corridors
+
+$$U_{sj} \le \sum_{r} \sum_{k \in A_j} Y_{rsjk} + Y_{rskj} \le \lambda U_{sj} \quad \forall s, j$$
+
+This constraint links the flow variables $Y$ with the species usage variable $U_{sj}$. A cell $j$ is marked as used by species $s$ ($U_{sj} = 1$) if and only if there is at least one flow arc passing through it. The big-M formulation ensures proper activation of the usage indicator.
+
+```{python}
+#| eval: false
+for species in SPECIES:
+    for j in all_cells:
+        flow_sum = gp.LinExpr()
+        m_cell_count = 0
+        for r in origin_cells_by_species[species]:
+            for k in adjacency[j]:
+                if (species, r, j, k) in y:
+                    flow_sum += y[(species, r, j, k)]
+                    flow_sum += y[(species, r, k, j)]
+                    m_cell_count += 2
+
+        M_cell = max(1, m_cell_count)
+        model.addConstr(
+            flow_sum <= M_cell * u[(species, j)], name=f"flow_on_built_{species}_{j}"
+        )
+        model.addConstr(
+            u[(species, j)] <= flow_sum, name=f"built_if_flow_{species}_{j}"
+        )
+```
+
+#### Linking u and x variables
+
+$$\sum_s U_{sj} \le \lambda X_j \quad \forall j$$
+
+This constraint ensures that a corridor cell $X_j$ is activated if any species uses that cell. If at least one species has $U_{sj} = 1$, then $X_j$ must be 1. This allows corridors to be shared across multiple species while ensuring the corridor is marked as built.
+
+```{python}
+#| eval: false
+for j in all_cells:
+    species_count = 0
+    lhs = gp.LinExpr()
+    for species in SPECIES:
+        lhs += u[(species, j)]
+        species_count += 1
+    M_species = species_count
+    model.addConstr(lhs <= M_species * x[j], name=f"u_x_link_{j}")
+```
+
+#### Incompatibility Martes martes - Oryctolagus cuniculus and Eliomys quercinus
+
+$$2 U_{\text{martes},j} + U_{\text{oryctolagus},j} + U_{\text{eliomys},j} \le 2 \quad \forall j \notin r_s$$
+
+This constraint models the ecological incompatibility between Martes martes (a predator) and its prey species (Oryctolagus cuniculus and Eliomys quercinus). The weighted inequality ensures that if Martes martes uses a corridor cell, then neither of the prey species can use the same cell simultaneously as a corridor.
+
+```{python}
+#| eval: false
+martes_origin_cells = origin_cells_by_species.get("martes_martes", [])
+oryctolagus_origin_cells = origin_cells_by_species.get("oryctolagus_cuniculus", [])
+eliomys_origin_cells = origin_cells_by_species.get("eliomys_quercinus", [])
+
+for j in all_cells:
+    if j in martes_origin_cells and (
+        j in oryctolagus_origin_cells or j in eliomys_origin_cells
+    ):
+        continue
+
+    model.addConstr(
+        2 * u.get(("martes_martes", j), 0)
+        + u.get(("oryctolagus_cuniculus", j), 0)
+        + u.get(("eliomys_quercinus", j), 0)
+        <= 2,
+        name=f"incompatibility_martes_oryctolagus_{j}",
+    )
+```
+
+#### Adaptation only if adjacent corridor or origin is built
+
+$$R_{sj} \le \sum_{k \in A_j} U_{sk} + m \quad \forall s, j \text{ where } m = \begin{cases} 1 & \text{if } \exists k \in A_j \mid k \in r_s \\ 0 & \text{otherwise} \end{cases}$$
+
+This constraint ensures that a cell can only be rehabilitated for a species if there is at least one adjacent cell that is part of that species' corridor network, or if the cell is adjacent to an origin cell. This guarantees that adapted habitats are connected to the corridor system.
+
+```{python}
+#| eval: false
+for species in SPECIES:
+    origins = origin_cells_by_species[species]
+    for j in all_cells:
+        if (species, j) not in rehab:
+            continue
+        adj_corridors = gp.LinExpr()
+
+        touches_origin = 0
+        for k in adjacency[j]:
+            adj_corridors += u[(species, k)]
+            if k in origins:
+                touches_origin = 1
+
+        model.addConstr(
+            rehab[(species, j)] <= adj_corridors + touches_origin,
+            name=f"rehab_adjacent_{species}_{j}",
+        )
+```
+
+#### Adaptation compatibility
+
+$$2 R_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \le 2 \quad \forall j$$
+
+Similar to the corridor incompatibility constraint, this ensures that habitat adaptations respect predator-prey relationships. A cell cannot be adapted for Martes martes if it is also adapted for Oryctolagus cuniculus or Eliomys quercinus, preventing conflicting habitat modifications in the same location.
+
+```{python}
+#| eval: false
+for j in all_cells:
+    model.addConstr(
+        2 * rehab.get(("martes_martes", j), 0)
+        + rehab.get(("oryctolagus_cuniculus", j), 0)
+        + rehab.get(("eliomys_quercinus", j), 0)
+        <= 2,
+        name=f"rehab_compatibility_{j}",
+    )
+```
+#### Corridor for martes or Adaptation for oryctolagus and eliomys
+
+$$2 U_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \le 2 \quad \forall j$$
+
+This constraint prevents a cell from being used as a corridor by Martes martes while simultaneously being adapted for Oryctolagus cuniculus or Eliomys quercinus. This extends the predator-prey incompatibility to cross-interactions between corridor usage and habitat adaptation.
+
+```{python}
+#| eval: false
+for j in all_cells:
+    model.addConstr(
+        2 * u.get(("martes_martes", j), 0)
+        + rehab.get(("oryctolagus_cuniculus", j), 0)
+        + rehab.get(("eliomys_quercinus", j), 0)
+        <= 2,
+        name=f"corridor_adaptation_compatibility_{j}",
+    )
+```
+
+#### Adaptation for martes or Corridor for oryctolagus and eliomys
+
+$$2 R_{\text{martes},j} + U_{\text{oryctolagus},j} + U_{\text{eliomys},j} \le 2 \quad \forall j$$
+
+This is the complementary constraint to the previous one. It prevents a cell from being adapted for Martes martes if it is being used as a corridor by Oryctolagus cuniculus or Eliomys quercinus, ensuring complete separation between predator and prey habitat modifications and movements.
+
+```{python}
+#| eval: false
+for j in all_cells:
+    model.addConstr(
+        2 * rehab.get(("martes_martes", j), 0)
+        + u.get(("oryctolagus_cuniculus", j), 0)
+        + u.get(("eliomys_quercinus", j), 0)
+        <= 2,
+        name=f"adaptation_corridor_compatibility_{j}",
+    )
+```
+
+#### Budget constraint: Per-species corridor budgets and per-species adaptation budgets
+
+$$\sum_j c_j U_{sj} \le B_s^c \quad \forall s$$
+
+$$\sum_j a_{sj} R_{sj} \le B_s^a \quad \forall s$$
+
+These constraints enforce the budget limitations for each species. The first loop ensures that the total cost of corridor cells used by each species does not exceed its allocated corridor budget ($B_s^c$). The second loop ensures that the total adaptation costs for each species stay within its adaptation budget ($B_s^a$).
+
+```{python}
+#| eval: false
+for species in SPECIES:
+    cap = corridor_budget_by_species.get(species, 0.0)
+    corridor_cost_species = gp.LinExpr()
+    for j in all_cells:
+        corridor_cost_species += cost_corridor_dict[j] * u[(species, j)]
+    model.addConstr(corridor_cost_species <= cap, name=f"budget_corridor_{species}")
+
+for species in SPECIES:
+    cap = adaptation_budget_by_species.get(species, 0.0)
+    adaptation_cost_species = gp.LinExpr()
+    for j in all_cells:
+        if (species, j) in rehab:
+            adaptation_cost_species += (
+                cost_adaptation_dict[(species, j)] * rehab[(species, j)]
+            )
+    model.addConstr(adaptation_cost_species <= cap, name=f"budget_adaptation_{species}")
+```
+
+#### Minimum coverage fraction
+
+$$\sum_{r,s} C_{rs} \ge cover \sum_{s} |r_s|$$
+
+This optional constraint ensures that at least a specified fraction of all origin cells across all species are covered by the corridor network. The `MIN_COVERAGE_FRACTION` parameter (e.g., 0.8 for 80%) determines the minimum proportion of origins that must be connected.
+
+```{python}
+# | eval: false
+if MIN_COVERAGE_FRACTION is not None and covered:
+    total_origins = len(covered)
+    required = MIN_COVERAGE_FRACTION * total_origins
+    model.addConstr(
+        gp.quicksum(covered.values()) >= required,
+        name="min_coverage_fraction",
+    )
+```
+
+### Solving the model and results
+
+The model is configured with performance parameters before solving: a time limit prevents excessive computation, MIPGap controls the acceptable optimality gap, MIPFocus directs the solver's strategy, and Heuristics controls the effort spent on finding feasible solutions quickly. After optimization, the solution status is checked and key metrics (objective value, total cost, runtime) are reported.
+
+```{python}
+#| eval: false
+# --- PERFORMANCE CONFIGURATION ---
+
+model.setParam("TimeLimit", TIME_LIMIT_SECONDS)
+
+model.setParam("MIPGap", GAP)
+
+model.setParam("MIPFocus", FOCUS)
+
+model.setParam("Heuristics", HEURISTICS)
+
+# --- END OF PERFORMANCE CONFIGURATION ---
+
+start_time = time.time()
+
+model.optimize()
+
+elapsed_time = time.time() - start_time
+
+# Calculate the total cost with the obtained solution
+total_cost = 0.0
+if model.SolCount > 0:
+    for j in x.keys():
+        if x[j].X > 0.5:
+            total_cost += cost_corridor_dict[j]
+        for species in SPECIES:
+            if (species, j) in rehab and rehab[(species, j)].X > 0.5:
+                total_cost += cost_adaptation_dict[(species, j)]
+
+print(f"Solution status: {model.Status}")
+
+if model.Status == GRB.OPTIMAL:
+    print("✓ OPTIMAL solution found!")
+elif model.Status == GRB.TIME_LIMIT and model.SolCount > 0:
+    print("✓ FEASIBLE solution found (time limit reached, not proven optimal)")
+elif model.Status in [GRB.SUBOPTIMAL] or model.SolCount > 0:
+    print("✓ FEASIBLE solution found (not proven optimal)")
+else:
+    print("✗ No solution found")
+
+if model.SolCount > 0:
+    print(f"\nObjective value: {model.ObjVal:.2f}")
+    print(f"Total cost: {total_cost:.2f}")
+    print(f"Number of variables: {model.NumVars}")
+    print(f"Number of constraints: {model.NumConstrs}")
+    print(f"Solver runtime: {model.Runtime:.2f} seconds")
+    print(f"Actual elapsed time: {elapsed_time:.2f} seconds")
+```
+
+### Solution Visualization
+
+To observe the solutions, the `folium` library is used. In this case, the solver was solved with three different configurations for the alpha.
+
+
+```{python}
+#| code-fold: true
+#| fig-cap: "Map of the solution obtained with alpha = 0.5"
+from pathlib import Path
+import sys
+import geopandas as gpd
+from folium.plugins import Fullscreen
+
+# Navigate to the src directory which contains the models package
+src_path = Path(__file__).parent.parent if "__file__" in dir() else Path(".").resolve().parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+# Alternative: if running from the document directory, try multiple paths
+for potential_path in [Path(".").parent, Path(".").parent.parent, Path(".."), Path("../src")]:
+    resolved = potential_path.resolve()
+    if (resolved / "models").exists() and str(resolved) not in sys.path:
+        sys.path.insert(0, str(resolved))
+        break
+
+from models.visualization import (
+    load_solution_summary,
+    create_solution_map,
+    compute_solution_cost,
+    format_cost_table,
+    )
+
+data_path = src_path.parent / "data"
+summaries_path = data_path / "experiments" / "summaries"
+df = gpd.read_parquet(data_path / "processed_dataset.parquet")
+
+alpha_05 = load_solution_summary(summaries_path / "modelling_multi_species_alpha_0.5_summary.json")
+alpha_075 = load_solution_summary(summaries_path / "modelling_multi_species_alpha_0.75_summary.json")
+alpha_025 = load_solution_summary(summaries_path / "modelling_multi_species_alpha_0.25_summary.json")
+
+
+create_solution_map(
+    df,
+    alpha_05,
+)
+```
+
+```{python}
+#| code-fold: true
+format_cost_table(compute_solution_cost(alpha_05, df, alpha=0.5), title="Cost Breakdown (α = 0.5)")
+```
+
+```{python}
+#|fig-cap: "Map of the solution obtained with alpha = 0.75"
+#| code-fold: true
+create_solution_map(
+    df,
+    alpha_075,
+)
+```
+```{python}
+#| code-fold: true
+format_cost_table(compute_solution_cost(alpha_075, df, alpha=0.75), title="Cost Breakdown (α = 0.75)")
+
+```
+
+```{python}
+#|fig-cap: "Map of the solution obtained with alpha = 0.25"
+#| code-fold: true
+create_solution_map(
+    df,
+    alpha_025,
+)
+```
+```{python}
+#| code-fold: true
+format_cost_table(compute_solution_cost(alpha_025, df, alpha=0.25), title="Cost Breakdown (α = 0.25)")
+```

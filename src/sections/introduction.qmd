@@ -1,0 +1,13 @@
+---
+title: "Introduction"
+bibliography: references.bib
+csl: ieee.csl
+---
+
+Menorca, designated as a UNESCO Biosphere Reserve, represents a unique ecological mosaic where biodiversity coexists with centuries of human activity [@leyReservaBiosfera]. However, like many island ecosystems, it faces the growing challenge of habitat fragmentation driven by anthropogenic pressures such as agricultural intensification and urbanization. Fragmentation reduces the viability of species by isolating populations, limiting gene flow and restricting access to scattered resources [@Wang2022].
+
+To mitigate these adverse effects, establishing a well-connected network of wildlife corridors is widely advocated as a practical conservation strategy [@DavidB]. Such networks facilitate species movement and metapopulation interactions, helping to sustain essential ecosystem functions [@Diaz2022]. The design of an efficient corridor system requires balancing ecological integrity with economic costs, transforming the conservation challenge into an optimization problem where every decision variable must maximize biological utility within a finite budget [@WANG2023e02560].
+
+Wildlife corridor design has evolved from heuristic methods to formal optimization. Early approaches modeled connectivity as a Network Steiner Tree (NST) [@Williams1998]. Subsequent research formalized the connected subgraph problem, maximizing biological utility under budget constraints [@CONRAD20121; @YEMSHANOV2019173]. Recent Mixed-Integer Linear Programming (MILP) models have advanced this field by incorporating network flows and specific spatial attributes like corridor width and length. [@WANG2023e02560; @Wang2022].
+
+This study addresses the optimal configuration of wildlife corridors and the strategic adaptation of habitat patches for four distinct species with varying requirements: the North African hedgehog (Atelerix algirus), the European pine marten (Martes martes), the Garden Dormouse (Eliomys quercinus), and the European rabbit (Oryctolagus cuniculus) [@EuropeanPineMarten2025; @EuropeanRabbit2025; @GardenDormouse2025; @NorthAfricanHedgehog2025]. In this web-based document, we present a Multi-objective MILP model applied to the discretized landscape of Menorca. Unlike formulations requiring a single connected component linking all colonies, our approach optimizes the selection of corridors and habitat adaptations subject to strict budget constraints by prioritizing critical sub-networks and habitat expansions, ensuring high-value conservation outcomes even when total island-wide connectivity is resource-prohibitive.

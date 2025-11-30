@@ -1,0 +1,52 @@
+---
+title: Mixed-Integer Linear Programming for Habitat Management and Ecological Connectivity in Mediterranean Landscapes
+author:
+    - name: Ferran Aragó-Ausina
+      affiliations:
+        - ref: upv
+      email: faraaus@upv.edu.es
+      attributes:
+        equal-contributior: true
+    - name: Andreu Bonet-Pavia
+      email: abonpav@upv.edu.es
+      attributes:
+        equal-contributior: true
+    - name: Laiqian Ji
+      email: lji1@upv.edu.es
+      attributes:
+        equal-contributior: true
+    - name: Ernesto Martínez-Gómez
+      email: emargom@upv.edu.es
+      attributes:
+        equal-contributior: true
+affiliations:
+  - id: upv
+    name: Universitat Politècnica de València
+    city: Valencia
+date: today
+abstract: >
+    Habitat fragmentation poses a critical threat to biodiversity in island ecosystems, reducing species viability by isolating populations. This study presents a Multi-objective Mixed-Integer Linear Programming (MILP) model applied to the Menorca Biosphere Reserve to optimize the configuration of wildlife corridors and habitat rehabilitation. The model targets four species with distinct requirements: *Atelerix algirus*, *Martes martes*, *Eliomys quercinus*, and *Oryctolagus cuniculus*. Unlike traditional formulations that enforce a single connected component, this approach relaxes connectivity constraints to maximize biological utility within a finite budget, prioritizing critical sub-networks. To address computational complexity, a distilled three-phase heuristic approach was developed. The model has been benchmarked using four solvers: CBC, SCIP, CP-SAT, and Gurobi. Experimental results indicate that the commercial solver Gurobi significantly outperforms open-source alternatives, offering the lowest execution time and variance. The proposed framework provides a spatially explicit strategy that balances ecological integrity, predator-prey compatibility, and economic costs.
+keywords:
+    - Mixed-Integer Linear Programming (MILP)
+    - Ecological Connectivity
+    - Wildlife Corridors
+    - Menorca Biosphere Reserve
+bibliography:
+  - sections/references.bib
+csl: sections/ieee.csl
+---
+
+:::{.callout-note}
+This web-based document serves as a guide and supplementary material to the paper attached to the assignment.
+:::
+
+**Contents**
+
+1. [Introduction](sections/introduction.qmd)
+2. [Exploratory Data Analysis](sections/problem_statement_eda.qmd)
+3. [Integer Linear Programming Model](sections/modelling_multi_specie.qmd)
+4. [Graph-Based Corridor Model](sections/graph_model_budgeted.qmd)
+5. [Experiments](sections/experiments.qmd)
+
+
+**Code**: *link*

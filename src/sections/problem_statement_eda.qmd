@@ -1,0 +1,394 @@
+---
+jupyter: python3
+title: "Exploratory Data Analysis"
+bibliography: references.bib
+csl: ieee.csl
+---
+
+```{python}
+#| code-fold: true
+import folium
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from matplotlib.colors import rgb2hex
+import numpy as np
+
+dataset_gpd = gpd.read_file(
+    "https://gitlab.com/drvicsana/opt-milp-project-2025/-/raw/main/datasets/dataset.geojson"
+)
+```
+
+
+
+## Available Data
+
+The dataset contains the following attributes for each cell in the discretized map of Menorca: 
+
+|Attribute|Description|Domain|
+| --- | --- | --- |
+| *grid_id* | Identifier of a cell in Menorca's map (column and row number) | String |
+| *dominant_land_cover_name* | Dominant type of land in the cell | String |
+| *cost_adaptation_atelerix* | Cost of making some adaptations in the cell for the atelerix | Float |
+| *cost_adaptation_martes* | Cost of making some adaptations in the cell for the martes martes | Float |
+| *cost_adaptation_eliomys* | Cost of making some adaptations in the cell for the eliomys quercinus | Float |
+| *cost_adaptation_oryctolagus* | Cost of making some adaptations in the cell for the oryctolagus cuniculus | Float |
+| *cost_corridor* | Cost of preparing a single corridor in the cell | Float |
+| *has_atelerix_algirus* | Whether or not the cell has a living colony of atelerix | Boolean |
+| *has_martes_martes* | Whether or not the cell has a living colony of martes martes | Boolean |
+| *has_eliomys_quercinus* | Whether or not the cell has a living colony of eliomys quercinus | Boolean |
+| *has_oryctolagus_cuniculus* | Whether or not the cell has a living colony of european rabbit | Boolean |
+| *geometry* | The polygon that describes the cell | Geometry |
+
+## Corridor Cost Analysis
+
+We observe that the distribution of corridor costs is normally distributed.
+
+
+```{python}
+plt.figure(figsize=(10, 6))
+plt.hist(dataset_gpd["cost_corridor"], bins=25, edgecolor="black")
+plt.xlabel("Cost of Corridor")
+plt.ylabel("Frequency")
+plt.title("Distribution of Cost of corridor")
+plt.show()
+```
+
+
+## Adaptation Analysis
+
+Here is analysed the adaptation for the four species considered in the project: *Oryctolagus cuniculus*, *Eliomys quercinus*, *Martes martes* and *Atelerix algirus*.
+
+### Sustainability Scores
+
+Firstly, is important to assign a suitability score to each land cover type for each species. These scores are based on ecological studies and expert opinions regarding the habitat preferences of each species.
+
+```{python}
+#| code-fold: true
+suitability_cuniculus = {
+    "Discontinuous Urban Fabric": "Low",
+    "Continuous Urban Fabric": "Very Low",
+    "Industrial or Commercial Units": "Very Low",
+    "Airports": "Very Low",
+    "Port Areas": "Very Low",
+    "Sport and Leisure Facilities": "Very Low",
+    "Pastures": "High",
+    "Non-irrigated Arable Land": "High",
+    "Permanently Irrigated Land": "Low",
+    "Complex Cultivation Patterns": "High",
+    "Land Principally Occupied by Agriculture with Significant Areas of Natural Vegetation": "High",
+    "Sclerophyllous Vegetation": "High",
+    "Transitional Woodland-Shrub": "High",
+    "Natural Grasslands": "High",
+    "Broad-leaved Forests": "Moderate",
+    "Mixed Forests": "Moderate",
+    "Coniferous Forests": "Low-Moderate",
+    "Peatbogs": "Very Low",
+    "Inland Marshes": "Very Low",
+    "Coastal Lagoons": "Very Low",
+    "Estuaries": "Very Low",
+    "Intertidal Flats": "Very Low",
+    "Water Courses": "Low",
+}
+
+suitability_quercinus = {
+    "Discontinuous Urban Fabric": "Low",
+    "Continuous Urban Fabric": "Very Low",
+    "Industrial or Commercial Units": "Very Low",
+    "Airports": "Very Low",
+    "Port Areas": "Very Low",
+    "Sport and Leisure Facilities": "Very Low",
+    "Pastures": "Low",
+    "Non-irrigated Arable Land": "Low",
+    "Permanently Irrigated Land": "Very Low",
+    "Complex Cultivation Patterns": "Moderate",
+    "Land Principally Occupied by Agriculture with Significant Areas of Natural Vegetation": "Moderate-High",
+    "Sclerophyllous Vegetation": "High",
+    "Transitional Woodland-Shrub": "High",
+    "Natural Grasslands": "Low",
+    "Broad-leaved Forests": "High",
+    "Mixed Forests": "High",
+    "Coniferous Forests": "Moderate-High",
+    "Peatbogs": "Very Low",
+    "Inland Marshes": "Very Low",
+    "Coastal Lagoons": "Very Low",
+    "Estuaries": "Very Low",
+    "Intertidal Flats": "Very Low",
+    "Water Courses": "Low-Moderate",
+}
+
+suitability_martes = {
+    "Discontinuous Urban Fabric": "Low",
+    "Continuous Urban Fabric": "Very Low",
+    "Industrial or Commercial Units": "Very Low",
+    "Airports": "Very Low",
+    "Port Areas": "Very Low",
+    "Sport and Leisure Facilities": "Very Low",
+    "Pastures": "Low",
+    "Non-irrigated Arable Land": "Low",
+    "Permanently Irrigated Land": "Very Low",
+    "Complex Cultivation Patterns": "Moderate",
+    "Land Principally Occupied by Agriculture with Significant Areas of Natural Vegetation": "Moderate-High",
+    "Sclerophyllous Vegetation": "High",
+    "Transitional Woodland-Shrub": "High",
+    "Natural Grasslands": "Low-Moderate",
+    "Broad-leaved Forests": "High",
+    "Mixed Forests": "High",
+    "Coniferous Forests": "Moderate-High",
+    "Peatbogs": "Very Low",
+    "Inland Marshes": "Very Low",
+    "Coastal Lagoons": "Very Low",
+    "Estuaries": "Very Low",
+    "Intertidal Flats": "Very Low",
+    "Water Courses": "Low-Moderate",
+}
+
+suitability_algirus = {
+    "Discontinuous Urban Fabric": "Moderate",
+    "Continuous Urban Fabric": "Low",
+    "Industrial or Commercial Units": "Very Low",
+    "Airports": "Very Low",
+    "Port Areas": "Very Low",
+    "Sport and Leisure Facilities": "Very Low",
+    "Pastures": "High",
+    "Non-irrigated Arable Land": "High",
+    "Permanently Irrigated Land": "Low",
+    "Complex Cultivation Patterns": "High",
+    "Land Principally Occupied by Agriculture with Significant Areas of Natural Vegetation": "High",
+    "Sclerophyllous Vegetation": "High",
+    "Transitional Woodland-Shrub": "High",
+    "Natural Grasslands": "Moderate-High",
+    "Broad-leaved Forests": "Moderate",
+    "Mixed Forests": "Moderate",
+    "Coniferous Forests": "Low",
+    "Peatbogs": "Very Low",
+    "Inland Marshes": "Very Low",
+    "Coastal Lagoons": "Very Low",
+    "Estuaries": "Very Low",
+    "Intertidal Flats": "Very Low",
+    "Water Courses": "Low-Moderate",
+}
+
+dataset_gpd["suitability_cuniculus"] = dataset_gpd["dominant_land_cover_name"].map(
+    suitability_cuniculus
+)
+dataset_gpd["suitability_quercinus"] = dataset_gpd["dominant_land_cover_name"].map(
+    suitability_quercinus
+)
+dataset_gpd["suitability_martes"] = dataset_gpd["dominant_land_cover_name"].map(
+    suitability_martes
+)
+dataset_gpd["suitability_algirus"] = dataset_gpd["dominant_land_cover_name"].map(
+    suitability_algirus
+)
+```
+
+
+Observing the suitability assignment, there are some cells that have a land cover type that is not considered in the suitability mapping, resulting in `NaN` values for their suitability scores. These cells need to be handled appropriately before proceeding with further analysis. In this case, these cells will be dropped from the dataset to ensure that all remaining cells have valid suitability scores for all species.
+
+
+```{python}
+dataset_gpd[dataset_gpd["suitability_cuniculus"].isnull()]
+```
+
+
+
+For the sustainability visualization, it is convenient to convert the categorical suitability scores into numerical values for easier mapping and visualization. The following mapping is used:
+
+| Suitability Score | Numerical Value |
+| --- | --- |
+| Very Low | 1 |
+| Low | 2 |
+| Low-Moderate | 3 |
+| Moderate | 4 |
+| Moderate-High | 5 |
+| High | 6 |
+
+
+```{python}
+# | code-fold: true
+# | fig-cap: "Suitability Maps for O. cuniculus"
+dataset_gpd = dataset_gpd.dropna().copy()
+
+suitability_to_num = {
+    "Very Low": 1,
+    "Low": 2,
+    "Low-Moderate": 3,
+    "Moderate": 4,
+    "Moderate-High": 5,
+    "High": 6,
+}
+
+dataset_gpd["suitability_cuniculus_num"] = (
+    dataset_gpd["suitability_cuniculus"].map(suitability_to_num).astype("int8")
+)
+dataset_gpd["suitability_quercinus_num"] = (
+    dataset_gpd["suitability_quercinus"].map(suitability_to_num).astype("int8")
+)
+dataset_gpd["suitability_martes_num"] = (
+    dataset_gpd["suitability_martes"].map(suitability_to_num).astype("int8")
+)
+dataset_gpd["suitability_algirus_num"] = (
+    dataset_gpd["suitability_algirus"].map(suitability_to_num).astype("int8")
+)
+
+suitability_colors = {
+    1: "red",
+    2: "orange",
+    3: "yellow",
+    4: "lightgreen",
+    5: "green",
+    6: "darkgreen",
+}
+
+
+def build_species_map(
+    gdf, value_col, species_label, center=(39.97, 4.0460), zoom=10, width="60%"
+):
+    m = folium.Map(location=center, zoom_start=zoom, tiles="OpenStreetMap", width=width)
+
+    for _, row in gdf.iterrows():
+        val = row[value_col]
+        color = suitability_colors.get(val, "gray")
+        land_cover_name = row["dominant_land_cover_name"]
+
+        folium.GeoJson(
+            row.geometry,
+            style_function=lambda x, color=color: {
+                "fillColor": color,
+                "color": "black",
+                "weight": 0.5,
+                "fillOpacity": 0.7,
+            },
+            tooltip=(
+                f"Grid ID: {row['grid_id']}<br>"
+                f"Dominant Land Cover: {land_cover_name}<br>"
+                f"Suitability ({species_label}): {val if pd.notna(val) else 'Unknown'}"
+            ),
+        ).add_to(m)
+
+    return m
+
+
+map_cuniculus = build_species_map(
+    dataset_gpd, "suitability_cuniculus_num", "O. cuniculus"
+)
+map_quercinus = build_species_map(
+    dataset_gpd, "suitability_quercinus_num", "E. quercinus"
+)
+map_martes = build_species_map(dataset_gpd, "suitability_martes_num", "M. martes")
+map_algirus = build_species_map(dataset_gpd, "suitability_algirus_num", "A. algirus")
+
+map_cuniculus
+```
+
+```{python}
+# | code-fold: true
+# | fig-cap: "Suitability Maps for A. algirus"
+map_algirus
+```
+
+```{python}
+# | code-fold: true
+# | fig-cap: "Suitability Maps for E. quercinus"
+map_quercinus
+```
+
+
+```{python}
+# | code-fold: true
+# | fig-cap: "Suitability Maps for M. martes"
+map_martes
+```
+
+
+
+Visually inspecting the maps, it can be noted a certain relation between the species with respect to the suitability scores. The *Oryctolagus cuniculus* and *Atelerix algirus* seem to have a similar distribution of suitability scores across the island, with many areas showing high suitability for both species. On the other hand, the *Eliomys quercinus* and *Martes martes* also exhibit a similar pattern to each other, but their suitability distributions differ from the first two species. This suggests that the habitat preferences of these species may overlap to some extent, but there are also distinct differences in their ecological requirements. An hypothesis could be that the *Martes martes* would have the same habitat preferences as the *Eliomys quercinus* due to their predator-prey relationship.
+
+
+### Benefit Estimation
+
+In order to estimate the benefit, is important to analyse the adaptation costs, while it is necessary to make a value in the same scale. So the first step is to observe the distribution of adaptation costs.
+
+```{python}
+adaptation_cost_columns = [
+    "cost_adaptation_atelerix",
+    "cost_adaptation_martes",
+    "cost_adaptation_eliomys",
+    "cost_adaptation_oryctolagus",
+]
+dataset_gpd[adaptation_cost_columns].hist(bins=50, figsize=(15, 10), grid=False)
+pass
+```
+
+```{python}
+costes = dataset_gpd[dataset_gpd["cost_adaptation_oryctolagus"] < 30][
+    "cost_adaptation_oryctolagus"
+]
+costes.hist(bins=100, figsize=(12, 8), grid=False)
+pass
+```
+
+```{python}
+# | code-fold: true
+costes = dataset_gpd[adaptation_cost_columns].to_numpy().flatten()
+```
+
+Observing the distibution plots, it seems that, for all the species, the costs follow a mixture of two distributions: a large number of low values and a small number of very high values. This suggests that most cells have relatively low adaptation costs, while a few cells are significantly more expensive to adapt. This pattern could reflect the varying suitability of different land types for each species, with some areas requiring minimal modifications and others needing substantial changes to become viable habitats.
+
+It is also important to note that, the oryctolagus cuniculus, presents really high adaptation costs in comparison to the other species in some parcels.
+
+For these reasons, the benefit, will be calculated as the suitability score multiplied by a cost multiplier based on the 75th percentile of adaptation costs, a value of `{python} str(np.quantile(costes, 0.75))`. The goal is to get a good trade-off between suitability and cost, prioritizing areas that offer high suitability at a reasonable adaptation cost.
+
+Here is the table that shows the mapping from suitability scores to benefit multipliers:
+
+
+| Suitability Score | Benefit Multiplier |
+| --- | --- |
+| Very Low | 0.1 |
+| Low | 0.3 |
+| Low-Moderate | 0.5 |
+| Moderate | 0.9 |
+| Moderate-High | 1.4 |
+| High | 2 |
+
+
+```{python}
+#| code-fold: true
+suitability_to_benefit = {
+    "Very Low": 0.1,
+    "Low": 0.3,
+    "Low-Moderate": 0.5,
+    "Moderate": 0.9,
+    "Moderate-High": 1.4,
+    "High": 2,
+}
+
+multiplier = np.quantile(costes, 0.75)
+
+
+dataset_gpd["suitability_cuniculus_benefit"] = dataset_gpd["suitability_cuniculus"].map(
+    suitability_to_benefit
+)
+dataset_gpd["suitability_quercinus_benefit"] = dataset_gpd["suitability_quercinus"].map(
+    suitability_to_benefit
+)
+dataset_gpd["suitability_martes_benefit"] = dataset_gpd["suitability_martes"].map(
+    suitability_to_benefit
+)
+dataset_gpd["suitability_algirus_benefit"] = dataset_gpd["suitability_algirus"].map(
+    suitability_to_benefit
+)
+
+dataset_gpd["cuniculus_benefit"] = (
+    dataset_gpd["suitability_cuniculus_benefit"] * multiplier
+)
+dataset_gpd["quercinus_benefit"] = (
+    dataset_gpd["suitability_quercinus_benefit"] * multiplier
+)
+dataset_gpd["martes_benefit"] = dataset_gpd["suitability_martes_benefit"] * multiplier
+dataset_gpd["algirus_benefit"] = dataset_gpd["suitability_algirus_benefit"] * multiplier
+dataset_gpd.head()
+```
+
+

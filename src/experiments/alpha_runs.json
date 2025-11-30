@@ -1,0 +1,16 @@
+{
+    "runs": [
+        {
+            "name": "alpha_0_25",
+            "alpha": 0.25
+        },
+        {
+            "name": "alpha_0_50",
+            "alpha": 0.5
+        },
+        {
+            "name": "alpha_0_75",
+            "alpha": 0.75
+        }
+    ]
+}

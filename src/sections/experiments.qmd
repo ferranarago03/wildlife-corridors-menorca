@@ -1,0 +1,366 @@
+---
+title: "Experimentation"
+bibliography: references.bib
+csl: ieee.csl
+---
+
+In this section, we present the experimental results obtained from the proposed optimization framework. The experimentation is structured into two distinct phases. First, we conduct a comparative performance analysis of four different solvers using the distilled model described in [Graph-Based Corridor Model](graph_model_budgeted.qmd). Second, utilizing the best-performing solver, we execute the full MILP model [Integer Linear Programming Model](modelling_multi_specie.qmd) with $\alpha = 0.5$ value to observe the full model trade-off performance.
+
+The experimental framework was implemented in Python. We utilized the Google OR-Tools library @ortools to access the open-source solvers CBC @cbc and SCIP @SCIP, as well as Google's native CP-SAT solver @cpsatlp. Additionally, the commercial solver Gurobi @gurobi was integrated into the pipeline. All experiments were conducted on a workstation with an AMD Ryzen 5 7600X processor (6 cores, 4.70 GHz) and 32 GB of DDR5 RAM.
+
+
+## Environment Setup and Configuration
+
+First, we establish our working environment. This includes importing necessary libraries for data manipulation, visualization, and statistical analysis. We also configure the plotting aesthetics to ensure our visualizations are clear and professional.
+
+```{python}
+#| label: imports and config
+#| code-fold: true
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import scikit_posthocs as sp
+
+from scipy import stats
+from pyfonts import load_google_font
+from matplotlib import rcParams
+from matplotlib.font_manager import fontManager
+
+font = load_google_font("Courier Prime", weight="regular", italic=False)
+fontManager.addfont(str(font.get_file()))
+rcParams.update(
+    {
+        "font.family": font.get_name(),
+        "font.style": font.get_style(),
+        "font.weight": font.get_weight(),
+        "font.size": font.get_size(),
+        "font.stretch": font.get_stretch(),
+        "font.variant": font.get_variant(),
+        "axes.titlesize": 16,
+        "axes.labelsize": 14,
+        "xtick.labelsize": 14,
+        "ytick.labelsize": 14,
+        "legend.fontsize": 16,
+        "figure.titlesize": 36,
+    }
+)
+```
+
+## Data Preparation
+
+Next, we load the experimental results. The data is formatted to facilitate analysis.
+
+```{python}
+#| label: data-preparation
+#| code-fold: true
+
+exp = pd.read_csv("../../data/experiments/graph_model_solver_experiment.csv")
+
+exp = exp.rename(
+    columns={
+        "TIEMPO": "TIME",
+        "FASE": "PHASE"
+    }
+)
+
+exp["PHASE"] = exp["PHASE"].str.replace("fase", "phase")
+
+exp = exp.pivot_table(
+    index=["SOLVER", "RUN"],
+    columns="PHASE",
+    values=["TIME"]
+).reset_index()
+
+exp.columns = [col[1] if col[1] else col[0] for col in exp.columns]
+
+phases = [col for col in exp.columns if "phase" in str(col)]
+exp["total"] = exp[phases].sum(axis=1)
+exp["SOLVER"] = exp["SOLVER"].str.upper()
+
+exp
+```
+
+## Visualization
+
+To understand the performance of different solvers across various phases, we create visualizations that combine strip plots and box plots. This allows us to see both the distribution of individual data points and summary statistics.
+
+First, we can observe performance differences between the solvers across all phases and in total. Second, the points within each solver are tighly clustered, suggesting low variation in performance across runs. Finally, a visual inspection suggests that data may not be normally distributed and variances may differ between solvers, which we will formally test in the next section.
+
+```{python, fig-width=6, fig-height=4}
+#| label: visualization
+#| code-fold: true
+
+# Define a color palette
+palette = [
+    "#009d9a",  # cbc
+    "#002d9c", # gurobi
+    "#a56eff", # sat
+    "#9f1853", # scip
+]
+
+# Number of phases + total
+targets = phases + ['total']
+
+num_caption = ["(a)", "(b)", "(c)"]
+
+# get global max for y-axis, excluding total column
+y_max = exp[phases].max().max() * 1.1  #
+
+# Create plots for each target
+for i, target in enumerate(targets):
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    # Plot stripplot
+    sns.stripplot(
+        data=exp, # dataset
+        x="SOLVER", # x-axis
+        y=target, # y-axis (time)
+        hue="SOLVER",
+        legend=False,
+        ax=ax,
+        alpha=0.8, # point transparency
+        # useful when there are many overlapping points
+        jitter=True,
+        size=6, # point size
+        palette=palette, # color palette
+        zorder=0 # draw below the boxplot
+    )
+
+    # Plot boxplot
+    sns.boxplot(
+        data=exp,
+        x="SOLVER",
+        y=target,
+        ax=ax,
+        # Outliers already shown in stripplot
+        showfliers=False,
+        boxprops={
+            'facecolor':'none', # transparent box, better visibility of stripplot
+            'edgecolor':'black', # black border
+            'linewidth': 1.25
+        },
+        # consistent color for whiskers
+        whiskerprops={
+            'color':'black',
+            'linewidth': 1.25
+        },
+        # consistent color for caps
+        capprops={
+            'color':'black',
+            'linewidth': 1.25
+        },
+        # consistent color for medians
+        medianprops={
+            'color':'black',
+            'linewidth': 1.25
+        },
+        width=0.8,
+        zorder=1 # draw above the stripplot
+    )
+
+    # Customize plot
+    if target == 'total':
+        ax.set_title("Total Time", pad=15)
+        ax.set_xlabel("")
+
+    else:
+        ax.set_title(f"{target[:-1].capitalize()} {target[-1]}", pad=15)
+        ax.set_ylim(0, y_max)
+
+    ax.set_ylabel("Time (s)")
+
+    # Professional look
+    ax.grid(True, which='major', linestyle='-', linewidth=0.75, alpha=0.2)
+    ax.minorticks_on()
+    ax.grid(True, which='minor', linestyle='-', linewidth=0.25, alpha=0.10)
+    ax.set_axisbelow(True)
+
+    # Save figures readily for report
+    filename = f"../../data/figures/plot_{target}.pdf"
+    plt.savefig(filename, format='pdf', bbox_inches='tight', dpi=300)
+```
+
+## Statistical Analysis
+
+### Assumtions Checking
+
+As a prerequisite for many statistical tests, we need to verify if our data meets certain assumptions, specifically normality and homogeneity of variances in onder to choose the appropriate statistical tests. If these assumptions are violated, we will proceed with non-parametric tests.
+
+1. **Normality**: To determine if the solver times follow a normal distribution, we used the Shapiro-Wilk test @shapiro1965. The test statistic $W$ is defined as:
+
+$$
+W = \frac{(\sum_{i=1}^{n} a_i x_{(i)})^2}{\sum_{i=1}^{n} (x_i - \bar{x})^2}
+$$
+
+Where $x_{(i)}$ are the ordered sample values and $a_i$ are constants generated from the means and covariances of the order statistics.
+
+* **$H_0$:** The population is normally distributed.
+* **$H_1$:** The population is **not** normally distributed.
+
+We reject $H_0$ if $p < 0.05$
+
+As seen in the output, the p-values for all solvers across all phases are significantly below 0.05 (e.g., $p \approx 0.000$). This indicates that the data is not normally distributed.
+
+
+2. **Homogeneity of Variance**: To verify if the variances are equal across different solvers (homoscedasticity), we applied Levene's test @levene1960. The test statistic $W$ is calculated as:
+
+$$
+W = \frac{(N-k)}{(k-1)} \frac{\sum_{i=1}^{k} N_i (Z_{i\cdot} - Z_{\cdot\cdot})^2}{\sum_{i=1}^{k} \sum_{j=1}^{N_i} (Z_{ij} - Z_{i\cdot})^2}
+$$
+
+Where $k$ is the number of groups (solvers), $N$ is the total sample size, and $Z_{ij} = |Y_{ij} - \tilde{Y}_{i\cdot}|$ (absolute deviation from the group median).
+
+* **$H_0$:** The population variances are equal ($\sigma^2_1 = \sigma^2_2 = \dots = \sigma^2_k$).
+* **$H_1$:** At least one variance is different.
+
+We reject $H_0$ if $p < 0.05$
+
+We checked if the variances were equal across groups. With the exception of Phase 3, the p-values were below 0.05, indicating heteroscedasticity (unequal variances).
+
+```{python}
+#| label: assumptions
+
+for target in targets:
+    print(f"--- Assumptions for {target} ---")
+
+    # check normality (Shapiro-Wilk)
+    # check p-value. If p < 0.05, we reject normality
+    for solver in exp["SOLVER"].unique():
+        stat, p = stats.shapiro(exp[exp["SOLVER"] == solver][target])
+        print(f"Shapiro ({solver}): p={p:.6f}")
+
+    # check homogeneity of variance (Levene)
+    # If p < 0.05, variances are different.
+    solvers_data = [group[target].values for name, group in exp.groupby("SOLVER")]
+    stat, p_levene = stats.levene(*solvers_data)
+    print(f"Levene Test: p={p_levene:.6f}\n")
+```
+
+### Kruskal-Wallis Test
+
+As the assumptions for ANOVA @fisher1954smrw were not met, we proceed with the Kruskal-Wallis H-test @kruskal1952, a non-parametric alternative that does not assume normality or homogeneity of variances. This test will help us determine if there are statistically significant differences between the solvers for each target metric. The $H$ statistic is given by:
+
+$$
+H = \frac{12}{N(N+1)} \sum_{i=1}^{k} \frac{R_i^2}{n_i} - 3(N+1)
+$$
+
+Where $R_i$ is the sum of ranks for group $i$, and $n_i$ is the number of observations in group $i$.
+
+* **$H_0$:** The population medians of all groups are equal.
+* **$H_1$:** At least one population median is different from the others.
+
+We reject $H_0$ if $p < 0.05$
+
+The results yielded extremely low p-values ($p < 10^{-37}$) for all phases and the total time. This allows us to reject the null hypothesis and confirm that there are significant statistical differences in performance between the solvers in every phase of the experiment.
+
+```{python}
+#| label: kruskal-wallis
+
+print("### Kruskal-Wallis H-Test Results ###")
+
+significant_targets = []
+
+for target in targets:
+    # Group data by solver
+    groups = [group[target].values for name, group in exp.groupby("SOLVER")]
+
+    # Perform Kruskal-Wallis
+    stat, p_value = stats.kruskal(*groups)
+
+    print(f"{target.upper()} | Statistic: {stat:.2f}, p-value: {p_value:.2e}")
+
+    if p_value < 0.05:
+        print(f"Significant differences found in {target}.")
+        significant_targets.append(target)
+    else:
+        print(f"No significant differences in {target}.")
+    print("-" * 30)
+```
+
+### Post-hoc Analysis
+
+Having established that significant differences exist among the solvers, we now conduct a post-hoc analysis using Dunn's test @duncan1955. This test allows us to perform pairwise comparisons between the solvers to identify which specific pairs differ significantly. The $z$-test statistic for comparing group $i$ and group $j$ is:
+
+$$
+z_{ij} = \frac{\bar{R}_i - \bar{R}_j}{\sqrt{\frac{N(N+1)}{12} \left( \frac{1}{n_i} + \frac{1}{n_j} \right)}}
+$$
+
+Where $\bar{R}$ represents the mean rank of the group. To control for the family-wise error rate due to multiple comparisons, we applied the **Bonferroni correction**:
+
+$$
+\alpha_{adjusted} = \frac{\alpha}{m}
+$$
+
+Where $m$ is the number of pairwise comparisons
+
+* **$H_0$:** There is no difference between the two groups.
+* **$H_1$:** There is a difference between the two groups.
+
+We reject $H_0$ if $p < \alpha_{adjusted}$
+
+The resulting matrices of p-values reveal the following:
+
+- **Phase 1**: hile most solvers differ significantly, CBC and SAT show no statistically significant difference ($p=1.0$).
+
+- **Phases 2 and 3**: In these phases, all pairwise comparisons yield $p < 0.05$, suggesting distinct performance profiles for each solver.
+
+- **Total**: The aggregated view confirms that globally, the solvers have significantly different performance characteristics, with the lowest p-values found when comparing GUROBI and SCIP against the others.
+
+```{python}
+#| label: post-hoc
+
+if significant_targets:
+    print("### Post-hoc Analysis (Dunn's Test) ###")
+
+    for target in significant_targets:
+        print(f"\n--- Pairwise comparisons for {target} ---")
+
+        # Dunn's test
+        # p_adjust='bonferroni' corrects for doing multiple tests to avoid False Positives
+        dunn_results = sp.posthoc_dunn(exp, val_col=target, group_col='SOLVER', p_adjust='bonferroni')
+
+        print(dunn_results)
+```
+
+
+Now, we generate the map for the best solver found in the experiments (Gurobi) using the full MILP model with $\alpha = 0.5$
+
+```{python}
+#| label: generate-solution-map
+#| code-fold: true
+
+from pathlib import Path
+import sys
+import geopandas as gpd
+from folium.plugins import Fullscreen
+
+# Navigate to the src directory which contains the models package
+src_path = Path(__file__).parent.parent if "__file__" in dir() else Path(".").resolve().parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+# Alternative: if running from the document directory, try multiple paths
+for potential_path in [Path(".").parent, Path(".").parent.parent, Path(".."), Path("../src")]:
+    resolved = potential_path.resolve()
+    if (resolved / "models").exists() and str(resolved) not in sys.path:
+        sys.path.insert(0, str(resolved))
+        break
+
+from models.visualization import load_solution_summary, create_solution_pdf
+
+gdf = gpd.read_parquet("../../data/processed_dataset.parquet")
+
+summary = load_solution_summary(
+    "../../data/experiments/summaries/modelling_multi_species_alpha_0.5_summary.json"
+)
+
+create_solution_pdf(
+    gdf,
+    summary,
+    output_path="../../data/figures/solution_map_gurobi_alpha_0.5.pdf",
+    save=False
+)
+```
+

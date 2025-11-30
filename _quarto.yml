@@ -1,0 +1,28 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - src/**/*.qmd
+    - "!2025_Proyecto_OPT_I.ipynb"
+
+website:
+  title: B.Sc Data Science
+  search: false
+
+  sidebar:
+    contents:
+      - text: "Abstract"
+      - href: src/index.qmd
+      - text: "Article"
+        contents:
+          - src/sections/introduction.qmd
+          - src/sections/problem_statement_eda.qmd
+          - src/sections/modelling_multi_specie.qmd
+          - src/sections/graph_model_budgeted.qmd
+          - src/sections/experiments.qmd
+format:
+  html:
+    toc: true
+    page-navigation: true
+    theme: cosmo
+    page-layout: article

@@ -1,0 +1,117 @@
+---
+title: "Graph-Based Budgeted Corridor Model"
+bibliography: references.bib
+csl: ieee.csl
+---
+
+```{=html}
+<style>
+.left-align-math .MathJax {
+  text-align: left !important;
+}
+</style>
+```
+
+## Rationale
+
+The graph-based models in `graph_core.py`, `graph_model_gurobi_budgeted.py`, and `graph_model_ortools_budgeted.py` are lightweight adaptations of the full multi-species ILP. Instead of optimizing over every cell and flow variable, they precompute a manageable set of shortest-path candidates and solve smaller budgeted selection problems. This keeps experiments tractable while following the three-phase algorithm shown in the report (prey → predator → rehabilitation).
+
+### Core building blocks
+
+- **Graph construction (`MenorcaEcologicalCorridor`)**: Loads `grid_id` geometry plus per-cell corridor cost into a directed `networkx.DiGraph`. Nodes carry the construction cost; edges are added for touching neighbors supplied by `adjacency`, associating the cost of the incoming node to the edge. `build_graph` can drop excluded cells (e.g., prey paths when routing the predator) before Dijkstra is run.
+- **Path candidate enumeration**: `generate_pairs` limits origin pairs by Manhattan distance (`MAX_DISTANCE_METHOD`). `enumerate_candidates` calls Dijkstra per species/origin pair to build `PathCandidate` objects (path id, species, origin/destination, cell list, cost, length). Reverse indexes `origin_to_paths` and `cell_to_paths` capture coverage and sharing relationships used by the optimization.
+- **Decision variables and constraints (path selection phase)**:
+  - Binary `z_path` per candidate path.
+  - Optional binary `c_species_origin` to mark a covered origin (created when penalties or minimum coverage are active).
+  - **Origin coverage**: either `sum z >= 1` per origin, or `sum z >= c` plus uncovered-origin penalty and/or minimum coverage fraction.
+  - **Per-species corridor budget**: `sum(cost_path * z_path) <= budget_species`.
+  - Objective: minimize total selected path cost plus optional penalties.
+- **Decision variables and constraints (rehabilitation phase)**:
+  - Binary `rehab_species_cell` only on candidates adjacent to a selected corridor or origin, filtered by `_cell_allowed_for_species` to enforce predator–prey incompatibility up front.
+  - Objective: minimize $\alpha$·(adaptation cost) − (1−$\alpha$)·(benefit).
+  - **Compatibility cap**: weighted sum per cell ≤ 2, blocking predator with prey rehab in the same location.
+  - **Per-species adaptation budget**: `sum(cost * rehab) <= budget_species`.
+- **Budget handling**: `_validate_and_prepare_budget_shares` converts total budget and per-species percentages into corridor and adaptation caps, mirroring the full ILP while keeping shares configurable.
+- **Dual solver backends**: `solve_path_selection` / `solve_rehab` implement the ILPs with Gurobi; `solve_path_selection_ortools` / `solve_rehabilitation_ortools` mirror the same structure with OR-Tools/SCIP so experiments can run without a commercial solver.
+
+## Pipeline
+
+### Phase 1: Non-Conflicting Species (Prey)
+
+**Input**: Full landscape graph $G$, species set $S_{prey} = S \setminus \{\text{Martes}\}$.
+
+**Process**:
+1. Generate origin pairs $(r_i, r_j)$ for each prey species where $\text{manhattan}(r_i, r_j) \leq D_{max}$.
+2. Compute shortest path for each pair using Dijkstra's algorithm.
+3. Create `PathCandidate` objects with path cells and costs.
+4. Solve path selection ILP:
+
+$\min \sum_{p \in P} \text{cost}_p \cdot z_p$
+
+Subject to:
+- Each origin participates in at least one selected path.
+- Per-species budget constraints.
+
+**Output**: Selected paths for prey species, cells used.
+
+### Phase 2: Conflicting Species (Predator)
+
+**Input**: Graph $G'$ with incompatible cells removed.
+
+**Incompatible cells** (removed from $G'$):
+- Origin cells of Oryctolagus and Eliomys unless origins.
+- Interior cells of paths selected in Phase 1 for Oryctolagus and Eliomys.
+
+**Process**: Same as Phase 1, but only for Martes martes.
+
+**Output**: Selected paths for Martes.
+
+### Phase 3: Rehabilitation
+
+**Input**: Fixed corridor network from Phases 1 & 2.
+
+**Candidate cells**: Cells adjacent to built corridors or origins.
+
+**Objective**:
+$\min \alpha \sum_{s,j} a_{sj} R_{sj} - (1-\alpha) \sum_{s,j} b_{sj} R_{sj}$.
+
+**Constraints**:
+- Compatibility: $2R_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \leq 2$.
+- Per-species adaptation budgets.
+
+### Phase 4 — Summary and maps
+
+- `build_summary_from_paths` consolidates corridors, rehabilitated cells, origin sets, and colors into a `SolutionSummary`.
+- Maps and JSON summaries are exported: `maps/graph_model_*_budgeted_map_*.html` and `data/experiments/summaries/graph_model_*_budgeted_summary.json`.
+
+## Data and parameters
+
+- Input: `data/processed_dataset.parquet` providing `grid_id`, geometry, corridor costs, adaptation costs, adaptation benefits, and per-species presence flags.
+- Shares: `CORRIDOR_SHARE_BY_SPECIES` and `ADAPTATION_SHARE_BY_SPECIES` (default 500 total budget) distribute spending by extinction risk.
+- Distance filter: `MAX_DISTANCE_METHOD` limits origin pairs to keep the candidate set small and runtimes short.
+- Optional coverage controls: uncovered-origin penalty and minimum coverage fraction can be toggled per experiment.
+
+## Running the pipelines
+
+Use any solver; both follow the same four-phase flow described above.
+
+Here are example commands to run either the Gurobi-backed or OR-Tools-backed pipeline in bash (first one) or python (second one):
+
+```bash
+# Gurobi-backed pipeline
+uv run python src/models/graph_model_gurobi_budgeted.py
+
+# OR-Tools-backed pipeline (SCIP)
+uv run python src/models/graph_model_ortools_budgeted.py
+```
+
+```{python}
+#| eval: false
+from models.graph_model_gurobi_budgeted import run_pipeline as run_gurobi
+from models.graph_model_ortools_budgeted import run_pipeline as run_ortools
+
+run_gurobi()
+run_ortools()
+```
+
+This graph-based family preserves the ecological logic of the full multi-species ILP while reducing problem size: shortest-path enumeration contains the combinatorial explosion, per-phase filtering enforces predator–prey separation, and budgeted subproblems can be solved quickly for repeated experiments.
