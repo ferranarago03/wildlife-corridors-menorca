@@ -365,9 +365,9 @@ def create_solution_pdf(
     """
 
     NON_ACTIVE_CELLS = "lightgray"
-    CORRIDOR_COLOR = "#9f1853"
-    ADAPT_COLOR = "#a56eff"
-    ORIGIN_COLOR = "#002d9c"
+    CORRIDOR_COLOR = "#b28600"
+    ADAPT_COLOR = "#ee538b"
+    ORIGIN_COLOR = "#009d9a"
 
     if gray_scale:
         CORRIDOR_COLOR = "#4d4d4d"
