@@ -49,4 +49,4 @@ This web-based document serves as a guide and supplementary material to the pape
 5. [Experiments](sections/experiments.qmd)
 
 
-**Code**: *link*
+**Code**: [GitHub Repository](https://github.com/ferranarago03/wildlife-corridors-menorca)
