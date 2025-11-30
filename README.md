@@ -13,8 +13,8 @@ This project implements advanced mathematical optimization models to design ecol
 Clone the repository and install dependencies using `uv`:
 
 ```bash
-git clone git@github.com:andreucs/opt-menorca.git
-cd opt-menorca
+git clone git@github.com:ferranarago03/wildlife-corridors-menorca.git
+cd wildlife-corridors-menorca
 uv sync
 ```
 
