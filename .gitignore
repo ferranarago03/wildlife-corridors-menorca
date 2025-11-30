@@ -209,7 +209,6 @@ __marimo__/
 2025_Proyecto_OPT_I.ipynb
 /.quarto/
 site_lib/
-docs/
 
 .DS_Store
 **/*.quarto_ipynb
