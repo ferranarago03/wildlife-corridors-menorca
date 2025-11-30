@@ -283,15 +283,29 @@ window.Quarto = {
 <section id="phase-1-non-conflicting-species-prey" class="level3">
 <h3 class="anchored" data-anchor-id="phase-1-non-conflicting-species-prey">Phase 1: Non-Conflicting Species (Prey)</h3>
 <p><strong>Input</strong>: Full landscape graph <span class="math inline">\(G\)</span>, species set <span class="math inline">\(S_{prey} = S \setminus \{\text{Martes}\}\)</span>.</p>
-<p><strong>Process</strong>: 1. Generate origin pairs <span class="math inline">\((r_i, r_j)\)</span> for each prey species where <span class="math inline">\(\text{manhattan}(r_i, r_j) \leq D_{max}\)</span>. 2. Compute shortest path for each pair using Dijkstra’s algorithm. 3. Create <code>PathCandidate</code> objects with path cells and costs. 4. Solve path selection ILP:</p>
+<p><strong>Process</strong>:</p>
+<ol type="1">
+<li><p>Generate origin pairs <span class="math inline">\((r_i, r_j)\)</span> for each prey species where <span class="math inline">\(\text{manhattan}(r_i, r_j) \leq D_{max}\)</span>.</p></li>
+<li><p>Compute shortest path for each pair using Dijkstra’s algorithm.</p></li>
+<li><p>Create <code>PathCandidate</code> objects with path cells and costs.</p></li>
+<li><p>Solve path selection ILP:</p></li>
+</ol>
 <p><span class="math inline">\(\min \sum_{p \in P} \text{cost}_p \cdot z_p\)</span></p>
-<p>Subject to: - Each origin participates in at least one selected path. - Per-species budget constraints.</p>
+<p>Subject to:</p>
+<ul>
+<li><p>Each origin participates in at least one selected path.</p></li>
+<li><p>Per-species budget constraints.</p></li>
+</ul>
 <p><strong>Output</strong>: Selected paths for prey species, cells used.</p>
 </section>
 <section id="phase-2-conflicting-species-predator" class="level3">
 <h3 class="anchored" data-anchor-id="phase-2-conflicting-species-predator">Phase 2: Conflicting Species (Predator)</h3>
 <p><strong>Input</strong>: Graph <span class="math inline">\(G'\)</span> with incompatible cells removed.</p>
-<p><strong>Incompatible cells</strong> (removed from <span class="math inline">\(G'\)</span>): - Origin cells of Oryctolagus and Eliomys unless origins. - Interior cells of paths selected in Phase 1 for Oryctolagus and Eliomys.</p>
+<p><strong>Incompatible cells</strong> (removed from <span class="math inline">\(G'\)</span>):</p>
+<ul>
+<li><p>Origin cells of Oryctolagus and Eliomys unless origins.</p></li>
+<li><p>Interior cells of paths selected in Phase 1 for Oryctolagus and Eliomys.</p></li>
+</ul>
 <p><strong>Process</strong>: Same as Phase 1, but only for Martes martes.</p>
 <p><strong>Output</strong>: Selected paths for Martes.</p>
 </section>
@@ -300,13 +314,17 @@ window.Quarto = {
 <p><strong>Input</strong>: Fixed corridor network from Phases 1 &amp; 2.</p>
 <p><strong>Candidate cells</strong>: Cells adjacent to built corridors or origins.</p>
 <p><strong>Objective</strong>: <span class="math inline">\(\min \alpha \sum_{s,j} a_{sj} R_{sj} - (1-\alpha) \sum_{s,j} b_{sj} R_{sj}\)</span>.</p>
-<p><strong>Constraints</strong>: - Compatibility: <span class="math inline">\(2R_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \leq 2\)</span>. - Per-species adaptation budgets.</p>
+<p><strong>Constraints</strong>:</p>
+<ul>
+<li><p>Compatibility: <span class="math inline">\(2R_{\text{martes},j} + R_{\text{oryctolagus},j} + R_{\text{eliomys},j} \leq 2\)</span>.</p></li>
+<li><p>Per-species adaptation budgets.</p></li>
+</ul>
 </section>
 <section id="phase-4-summary-and-maps" class="level3">
 <h3 class="anchored" data-anchor-id="phase-4-summary-and-maps">Phase 4 — Summary and maps</h3>
 <ul>
-<li><code>build_summary_from_paths</code> consolidates corridors, rehabilitated cells, origin sets, and colors into a <code>SolutionSummary</code>.</li>
-<li>Maps and JSON summaries are exported: <code>maps/graph_model_*_budgeted_map_*.html</code> and <code>data/experiments/summaries/graph_model_*_budgeted_summary.json</code>.</li>
+<li><p><code>build_summary_from_paths</code> consolidates corridors, rehabilitated cells, origin sets, and colors into a <code>SolutionSummary</code>.</p></li>
+<li><p>Maps and JSON summaries are exported: <code>maps/graph_model_*_budgeted_map_*.html</code> and <code>data/experiments/summaries/graph_model_*_budgeted_summary.json</code>.</p></li>
 </ul>
 </section>
 </section>
@@ -328,7 +346,7 @@ window.Quarto = {
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># OR-Tools-backed pipeline (SCIP)</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run python src/models/graph_model_ortools_budgeted.py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div id="de8149c6" class="cell" data-execution_count="1">
+<div id="2f11dc4b" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> models.graph_model_gurobi_budgeted <span class="im">import</span> run_pipeline <span class="im">as</span> run_gurobi</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> models.graph_model_ortools_budgeted <span class="im">import</span> run_pipeline <span class="im">as</span> run_ortools</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -413,7 +431,7 @@ window.Quarto = {
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp('/' + window.location.host + '/');
+        var filterRegex = new RegExp("https:\/\/ferranarago03\.github\.io\/wildlife-corridors-menorca\/");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
